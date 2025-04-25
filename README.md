@@ -12,10 +12,17 @@ A TypeScript implementation of a configurable job queue with concurrency control
 - Graceful Shutdown: Dispose mechanism for clean termination
 
 ## Installation
+Clone the repository:
 ```
-1. git clone https://github.com/Nombela95/Job-Queue
-
-2. npm install
+git clone https://github.com/Nombela95/Job-Queue
+```
+## Install dependencies
+```
+npm install
+```
+## Run the application
+```
+npm run build
 ```
 ## Testing
 Run the test suite:
@@ -35,3 +42,15 @@ This solution:
 6. Meets all the technical constraints
 
 The implementation handles all edge cases and provides clean error handling while maintaining good performance characteristics. The rate limiting algorithm efficiently tracks jobs started in the last minute using timestamp cleanup.
+
+## 🙋‍♀️ Developer
+Andiswa Nombela
+```
+GitHub: https://github.com/Nombela95/
+```
+```
+GitLab: https://gitlab.com/RomanNombela/
+```
+```
+LinkedIn: https://www.linkedin.com/in/andiswa-nombela-64865a168/
+```
