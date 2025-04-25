@@ -1,0 +1,47 @@
+{
+  "name": "job-queue",
+  "version": "1.0.0",
+  "description": "A configurable job queue with concurrency control, rate limiting, and timeout handling",
+  "main": "dist/jobQueue.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "test": "npm run build && node dist/tests/jobQueue.test.js",
+    "prepublishOnly": "npm run build",
+    "lint": "eslint src --ext .ts",
+    "clean": "rm -rf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Nombela95/Job-Queue.git"
+  },
+  "keywords": [
+    "job",
+    "queue",
+    "async",
+    "concurrency",
+    "rate-limiting",
+    "typescript"
+  ],
+  "author": "Andiswa Nombela",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Nombela95/Job-Queue/issues"
+  },
+  "homepage": "https://github.com/Nombela95/Job-Queue#readme",
+  "devDependencies": {
+    "@types/node": "^22.15.2",
+    "typescript": "^5.8.3",
+    "eslint": "^8.56.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.1",
+    "@typescript-eslint/parser": "^7.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*.ts",
+    "README.md"
+  ]
+}
