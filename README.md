@@ -23,6 +23,7 @@ npm install
 ## Run the application
 ```
 npm run build
+node dist/jobQueueDemo.js
 ```
 ## Testing
 Run the test suite:
