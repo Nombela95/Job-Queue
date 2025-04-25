@@ -1,5 +1,5 @@
 // src/tests/jobQueue.test.ts
-import { JobQueue } from '../jobQueue.js';
+import { JobQueue } from "../jobQueue.js";
 /**
  * Simple test framework functions
  */
@@ -37,13 +37,15 @@ const test = {
     async assertThrows(fn, expectedErrorMsg) {
         try {
             await fn();
-            throw new Error(`Expected to throw${expectedErrorMsg ? ` with message containing "${expectedErrorMsg}"` : ''}, but did not throw`);
+            throw new Error(`Expected to throw${expectedErrorMsg
+                ? ` with message containing "${expectedErrorMsg}"`
+                : ""}, but did not throw`);
         }
         catch (error) {
             if (expectedErrorMsg && !error.message.includes(expectedErrorMsg)) {
                 throw new Error(`Expected error message to contain "${expectedErrorMsg}", but got: "${error.message}"`);
             }
-            console.log(`  ✓ Correctly threw error${expectedErrorMsg ? ` containing "${expectedErrorMsg}"` : ''}`);
+            console.log(`  ✓ Correctly threw error${expectedErrorMsg ? ` containing "${expectedErrorMsg}"` : ""}`);
         }
     },
     summary() {
@@ -63,7 +65,7 @@ const test = {
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 const createSuccessJob = (delay, value = `Job completed after ${delay}ms`) => async (...args) => {
     await wait(delay);
-    return args.length > 0 ? `${value} with args: ${args.join(', ')}` : value;
+    return args.length > 0 ? `${value} with args: ${args.join(", ")}` : value;
 };
 const createFailJob = (delay, errorMessage = `Job failed after ${delay}ms`) => async () => {
     await wait(delay);
@@ -74,14 +76,14 @@ const createFailJob = (delay, errorMessage = `Job failed after ${delay}ms`) => a
  */
 async function runTests() {
     // Basic functionality
-    await test.run('Basic job scheduling and execution', async () => {
+    await test.run("Basic job scheduling and execution", async () => {
         const queue = new JobQueue();
         test.log(`Created queue with default options`);
         const startTime = Date.now();
-        const result = await queue.schedule(createSuccessJob(100), 'test-arg');
+        const result = await queue.schedule(createSuccessJob(100), "test-arg");
         const totalTime = Date.now() - startTime;
-        test.assert(result.result.includes('Job completed after 100ms'), 'Job should return correct result');
-        test.assert(result.result.includes('test-arg'), 'Job should receive and process arguments');
+        test.assert(result.result.includes("Job completed after 100ms"), "Job should return correct result");
+        test.assert(result.result.includes("test-arg"), "Job should receive and process arguments");
         test.assert(result.queueTime >= 0, `Queue time (${result.queueTime}ms) should be tracked`);
         test.assert(result.executionTime >= 80, `Execution time (${result.executionTime}ms) should be at least 80ms`);
         test.assert(totalTime >= 100, `Total time (${totalTime}ms) should be at least 100ms`);
@@ -89,10 +91,10 @@ async function runTests() {
         test.log(`Queue disposed`);
     });
     // Job failure
-    await test.run('Failed job should reject promise with original error', async () => {
+    await test.run("Failed job should reject promise with original error", async () => {
         const queue = new JobQueue();
         test.log(`Created queue with default options`);
-        const errorMsg = 'Custom error message for testing';
+        const errorMsg = "Custom error message for testing";
         await test.assertThrows(async () => {
             await queue.schedule(createFailJob(50, errorMsg));
         }, errorMsg);
@@ -100,7 +102,7 @@ async function runTests() {
         test.log(`Queue disposed`);
     });
     // Queue size and active count
-    await test.run('Queue size and active count tracking', async () => {
+    await test.run("Queue size and active count tracking", async () => {
         const concurrencyLimit = 2;
         const queue = new JobQueue({ concurrencyLimit });
         test.log(`Created queue with concurrency limit of ${concurrencyLimit}`);
@@ -145,7 +147,7 @@ async function runTests() {
         test.log(`Queue disposed`);
     });
     // Concurrency limit
-    await test.run('Concurrency limit enforcement', async () => {
+    await test.run("Concurrency limit enforcement", async () => {
         const concurrencyLimit = 3;
         const queue = new JobQueue({ concurrencyLimit });
         test.log(`Created queue with concurrency limit of ${concurrencyLimit}`);
@@ -178,8 +180,84 @@ async function runTests() {
         queue.dispose();
         test.log(`Queue disposed`);
     });
+    // Additional test cases to add to JobQueue test
+    // Edge case: Extremely short jobs
+    await test.run("Handling extremely short jobs", async () => {
+        const queue = new JobQueue({ concurrencyLimit: 5 });
+        test.log(`Created queue with concurrency limit of 5`);
+        const jobCount = 100;
+        const promises = [];
+        const completedJobs = [];
+        for (let i = 0; i < jobCount; i++) {
+            promises.push(queue.schedule(async () => {
+                completedJobs.push(i);
+                return i;
+            }));
+        }
+        await Promise.all(promises);
+        test.assert(completedJobs.length === jobCount, `All ${jobCount} jobs should complete, got ${completedJobs.length}`);
+        queue.dispose();
+    });
+    // Error handling: Job throws synchronously
+    await test.run("Job throws synchronously", async () => {
+        const queue = new JobQueue();
+        test.log(`Created queue with default options`);
+        await test.assertThrows(async () => {
+            await queue.schedule(() => {
+                throw new Error("Synchronous error");
+            });
+        }, "Synchronous error");
+        queue.dispose();
+    });
+    // Stress test: Many jobs with varying completion times
+    await test.run("Stress test with many jobs of varying completion times", async () => {
+        const queue = new JobQueue({ concurrencyLimit: 10 });
+        test.log(`Created queue with concurrency limit of 10`);
+        const jobCount = 50;
+        const promises = [];
+        const startTime = Date.now();
+        for (let i = 0; i < jobCount; i++) {
+            // Random completion time between 10-100ms
+            const delay = 10 + Math.floor(Math.random() * 90);
+            promises.push(queue.schedule(createSuccessJob(delay)));
+        }
+        await Promise.all(promises);
+        const totalTime = Date.now() - startTime;
+        test.log(`Completed ${jobCount} jobs in ${totalTime}ms`);
+        test.assert(queue.size() === 0, `Queue should be empty after all jobs complete`);
+        test.assert(queue.active() === 0, `Active count should be 0 after all jobs complete`);
+        queue.dispose();
+    });
+    // Test for memory leaks by running many jobs
+    await test.run("Memory usage with many jobs", async () => {
+        const queue = new JobQueue();
+        test.log(`Created queue with default options`);
+        // Record memory usage before test
+        const memBefore = process.memoryUsage().heapUsed;
+        test.log(`Memory usage before test: ${Math.round(memBefore / 1024 / 1024)}MB`);
+        // Run many small jobs
+        const jobCount = 1000;
+        const promises = [];
+        for (let i = 0; i < jobCount; i++) {
+            promises.push(queue.schedule(async () => i));
+        }
+        await Promise.all(promises);
+        // Force garbage collection if possible (Node.js with --expose-gc flag)
+        if (global.gc) {
+            global.gc();
+            test.log("Forced garbage collection");
+        }
+        // Check memory usage after test
+        const memAfter = process.memoryUsage().heapUsed;
+        const memDiff = memAfter - memBefore;
+        test.log(`Memory usage after test: ${Math.round(memAfter / 1024 / 1024)}MB`);
+        test.log(`Memory difference: ${Math.round(memDiff / 1024 / 1024)}MB`);
+        // We can't make a strict assertion here since memory usage depends on many factors,
+        // but we can log it for manual inspection
+        queue.dispose();
+    });
     // Rate limit
-    await test.run('Rate limit enforcement', async () => {
+    await test.run("Rate limit enforcement", async () => {
         const rateLimit = 5; // 5 jobs per minute
         const queue = new JobQueue({ rateLimit });
         test.log(`Created queue with rate limit of ${rateLimit} jobs per minute`);
@@ -220,24 +298,24 @@ async function runTests() {
         test.log(`Queue disposed`);
     });
     // Job timeout
-    await test.run('Job timeout mechanism', async () => {
+    await test.run("Job timeout mechanism", async () => {
         const timeoutLimit = 0.2; // 200ms timeout
         const queue = new JobQueue({ timeoutLimit });
         test.log(`Created queue with timeout limit of ${timeoutLimit} seconds (${timeoutLimit * 1000}ms)`);
         // Test job that completes before timeout
         test.log(`Testing job that completes before timeout (100ms < ${timeoutLimit * 1000}ms)...`);
         const fastResult = await queue.schedule(createSuccessJob(100));
-        test.assert(fastResult.result.includes('100ms'), 'Fast job should complete successfully');
+        test.assert(fastResult.result.includes("100ms"), "Fast job should complete successfully");
         // Test job that exceeds timeout
         test.log(`Testing job that exceeds timeout (300ms > ${timeoutLimit * 1000}ms)...`);
         await test.assertThrows(async () => {
             await queue.schedule(createSuccessJob(300));
-        }, 'timed out');
+        }, "timed out");
         queue.dispose();
         test.log(`Queue disposed`);
     });
     // Execution order (FIFO)
-    await test.run('Execution order (FIFO)', async () => {
+    await test.run("Execution order (FIFO)", async () => {
         const queue = new JobQueue({ concurrencyLimit: 1 });
         test.log(`Created queue with concurrency limit of 1 to test FIFO ordering`);
         const executionOrder = [];
@@ -270,15 +348,15 @@ async function runTests() {
         test.log(`Queue disposed`);
     });
     // Dispose
-    await test.run('Dispose behavior with pending jobs', async () => {
+    await test.run("Dispose behavior with pending jobs", async () => {
         const queue = new JobQueue({ concurrencyLimit: 1 });
         test.log(`Created queue with concurrency limit of 1`);
         // Start one long-running job
-        const runningJob = queue.schedule(createSuccessJob(300, 'Running job'));
+        const runningJob = queue.schedule(createSuccessJob(300, "Running job"));
         test.log(`Scheduled one long-running job (300ms)`);
         // Queue up two more jobs
-        const pendingJob1 = queue.schedule(createSuccessJob(50, 'Pending job 1'));
-        const pendingJob2 = queue.schedule(createSuccessJob(50, 'Pending job 2'));
+        const pendingJob1 = queue.schedule(createSuccessJob(50, "Pending job 1"));
+        const pendingJob2 = queue.schedule(createSuccessJob(50, "Pending job 2"));
         test.log(`Scheduled two more jobs that should be queued`);
         // Wait a bit for the first job to start
         await wait(50);
@@ -290,32 +368,32 @@ async function runTests() {
         // Check that pending jobs are rejected
         await test.assertThrows(async () => {
             await pendingJob1;
-        }, 'disposed');
+        }, "disposed");
         await test.assertThrows(async () => {
             await pendingJob2;
-        }, 'disposed');
+        }, "disposed");
         // The running job should still complete
         try {
             const result = await runningJob;
             test.log(`Running job completed with result: ${result.result}`);
-            test.assert(result.result.includes('Running job'), `Running job should complete successfully`);
+            test.assert(result.result.includes("Running job"), `Running job should complete successfully`);
         }
         catch (error) {
             throw new Error(`Running job should not be rejected when queue is disposed: ${error}`);
         }
     });
     // Schedule after dispose
-    await test.run('Schedule after dispose rejection', async () => {
+    await test.run("Schedule after dispose rejection", async () => {
         const queue = new JobQueue();
         test.log(`Created queue with default options`);
         queue.dispose();
         test.log(`Disposed queue immediately`);
         await test.assertThrows(async () => {
             await queue.schedule(createSuccessJob(50));
-        }, 'disposed');
+        }, "disposed");
     });
     // Multiple concurrent queues
-    await test.run('Multiple concurrent queues', async () => {
+    await test.run("Multiple concurrent queues", async () => {
         const queue1 = new JobQueue({ concurrencyLimit: 2 });
         const queue2 = new JobQueue({ concurrencyLimit: 3 });
         test.log(`Created two queues with different concurrency limits`);
@@ -350,17 +428,125 @@ async function runTests() {
         queue2.dispose();
         test.log(`Both queues disposed`);
     });
+    //   // Additional test cases to add to JobQueue test
+    //   // Edge case: Zero concurrency limit
+    //   await test.run(
+    //     "Zero concurrency limit should be treated as at least 1",
+    //     async () => {
+    //       const queue = new JobQueue({ concurrencyLimit: 0 });
+    //       test.log(`Created queue with concurrency limit of 0`);
+    //       const result = await queue.schedule(createSuccessJob(50));
+    //       test.assert(
+    //         result.result.includes("50ms"),
+    //         "Job should complete even with zero concurrency limit"
+    //       );
+    //       queue.dispose();
+    //     }
+    //   );
+    //   // Edge case: Extremely short jobs
+    //   await test.run("Handling extremely short jobs", async () => {
+    //     const queue = new JobQueue({ concurrencyLimit: 5 });
+    //     test.log(`Created queue with concurrency limit of 5`);
+    //     const jobCount = 100;
+    //     const promises = [];
+    //     const completedJobs = [];
+    //     for (let i = 0; i < jobCount; i++) {
+    //       promises.push(
+    //         queue.schedule(async () => {
+    //           completedJobs.push(i);
+    //           return i;
+    //         })
+    //       );
+    //     }
+    //     await Promise.all(promises);
+    //     test.assert(
+    //       completedJobs.length === jobCount,
+    //       `All ${jobCount} jobs should complete, got ${completedJobs.length}`
+    //     );
+    //     queue.dispose();
+    //   });
+    //   // Error handling: Job throws synchronously
+    //   await test.run("Job throws synchronously", async () => {
+    //     const queue = new JobQueue();
+    //     test.log(`Created queue with default options`);
+    //     await test.assertThrows(async () => {
+    //       await queue.schedule(() => {
+    //         throw new Error("Synchronous error");
+    //       });
+    //     }, "Synchronous error");
+    //     queue.dispose();
+    //   });
+    //   // Stress test: Many jobs with varying completion times
+    //   await test.run(
+    //     "Stress test with many jobs of varying completion times",
+    //     async () => {
+    //       const queue = new JobQueue({ concurrencyLimit: 10 });
+    //       test.log(`Created queue with concurrency limit of 10`);
+    //       const jobCount = 50;
+    //       const promises = [];
+    //       const startTime = Date.now();
+    //       for (let i = 0; i < jobCount; i++) {
+    //         // Random completion time between 10-100ms
+    //         const delay = 10 + Math.floor(Math.random() * 90);
+    //         promises.push(queue.schedule(createSuccessJob(delay)));
+    //       }
+    //       await Promise.all(promises);
+    //       const totalTime = Date.now() - startTime;
+    //       test.log(`Completed ${jobCount} jobs in ${totalTime}ms`);
+    //       test.assert(
+    //         queue.size() === 0,
+    //         `Queue should be empty after all jobs complete`
+    //       );
+    //       test.assert(
+    //         queue.active() === 0,
+    //         `Active count should be 0 after all jobs complete`
+    //       );
+    //       queue.dispose();
+    //     }
+    //   );
+    //   // Test for memory leaks by running many jobs
+    //   await test.run("Memory usage with many jobs", async () => {
+    //     const queue = new JobQueue();
+    //     test.log(`Created queue with default options`);
+    //     // Record memory usage before test
+    //     const memBefore = process.memoryUsage().heapUsed;
+    //     test.log(
+    //       `Memory usage before test: ${Math.round(memBefore / 1024 / 1024)}MB`
+    //     );
+    //     // Run many small jobs
+    //     const jobCount = 1000;
+    //     const promises = [];
+    //     for (let i = 0; i < jobCount; i++) {
+    //       promises.push(queue.schedule(async () => i));
+    //     }
+    //     await Promise.all(promises);
+    //     // Force garbage collection if possible (Node.js with --expose-gc flag)
+    //     if (global.gc) {
+    //       global.gc();
+    //       test.log("Forced garbage collection");
+    //     }
+    //     // Check memory usage after test
+    //     const memAfter = process.memoryUsage().heapUsed;
+    //     const memDiff = memAfter - memBefore;
+    //     test.log(
+    //       `Memory usage after test: ${Math.round(memAfter / 1024 / 1024)}MB`
+    //     );
+    //     test.log(`Memory difference: ${Math.round(memDiff / 1024 / 1024)}MB`);
+    //     // We can't make a strict assertion here since memory usage depends on many factors,
+    //     // but we can log it for manual inspection
+    //     queue.dispose();
+    //   });
 }
 // Run all tests
-console.log('🚀 Starting JobQueue Tests...');
-console.time('Tests Duration');
+console.log("🚀 Starting JobQueue Tests...");
+console.time("Tests Duration");
 try {
     await runTests();
-    console.timeEnd('Tests Duration');
+    console.timeEnd("Tests Duration");
     test.summary();
 }
 catch (error) {
-    console.error('❌ Unhandled error in test suite:');
+    console.error("❌ Unhandled error in test suite:");
     console.error(error);
     process.exit(1);
 }

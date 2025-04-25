@@ -31,7 +31,6 @@ async function runDemo() {
     queue.dispose();
     console.log("Queue disposed");
 }
-// Run the demo
 runDemo().catch(error => {
     console.error("Error in demo:", error);
 });
